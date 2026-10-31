@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cıss Burger | Teknoloji Konseptli Gurme Burgerci</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(240 3.7% 15.9%)",
+            card: "hsl(240 10% 3.9%)",
+            "card-foreground": "hsl(0 0% 98%)",
+            muted: "hsl(240 3.7% 15.9%)",
+            "muted-foreground": "hsl(240 5% 64.9%)"
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background-color: #09090b; color: #fafafa; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .loader {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(249, 115, 22, 0.25);
+      border-bottom-color: #f97316;
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+  <!-- React 18 UMD + Babel (Works directly via file:// without CORS issues) -->
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone@7.26.3/babel.min.js"></script>
+</head>
+<body class="min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-orange-500 selection:text-black">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useCallback, useEffect } = React;
+
+    // lib/utils.ts -> cn helper
+    function cn(...inputs) {
+      return inputs.flat(Infinity).filter(Boolean).join(" ");
+    }
+
+    // SVG Icons (lucide-react equivalents so zero external network icon failures)
+    const IconFlame = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+      </svg>
+    );
+
+    const IconCpu = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/>
+        <path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
+      </svg>
+    );
+
+    const IconSparkles = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+        <path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>
+      </svg>
+    );
+
+    const IconChevronRight = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m9 18 6-6-6-6"/>
+      </svg>
+    );
+
+    const IconThermometer = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+      </svg>
+    );
+
+    const IconAward = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+      </svg>
+    );
+
+    const IconLayers = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
+        <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>
+      </svg>
+    );
+
+    const IconZap = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
+      </svg>
+    );
+
+    const IconShieldCheck = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    );
+
+    const IconCheckCircle2 = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+      </svg>
+    );
+
+    const IconUtensils = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+      </svg>
+    );
+
+    const IconActivity = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+      </svg>
+    );
+
+    const IconGauge = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>
+      </svg>
+    );
+
+    const IconCompass = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+      </svg>
+    );
+
+    const IconMapPin = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>
+      </svg>
+    );
+
+    const IconClock = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    );
+
+    const IconPhone = ({ className = "w-5 h-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+      </svg>
+    );
+
+    // components/ui/card.tsx
+    const Card = React.forwardRef(({ className, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+        {...props}
+      />
+    ));
+    Card.displayName = "Card";
+
+    const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
+      <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+    ));
+    CardHeader.displayName = "CardHeader";
+
+    const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
+      <h3 ref={ref} className={cn("text-2xl font-semibold leading-none tracking-tight", className)} {...props} />
+    ));
+    CardTitle.displayName = "CardTitle";
+
+    const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
+      <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+    ));
+    CardDescription.displayName = "CardDescription";
+
+    const CardContent = React.forwardRef(({ className, ...props }, ref) => (
+      <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+    ));
+    CardContent.displayName = "CardContent";
+
+    const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
+      <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
+    ));
+    CardFooter.displayName = "CardFooter";
+
+    // components/ui/spotlight.tsx (Disabled per user request)
+    function Spotlight() {
+      return null;
+    }
+
+    // components/ui/splite.tsx -> Interactive Scroll-to-Explode 3D Photorealistic Burger
+    const BURGER_LAYERS = [
+      {
+        id: "top-bun",
+        src: "./assets/layer-1-top-bun.png",
+        code: "01 // ÜST BRIOCHE",
+        name: "Susamlı Artizan Brioche",
+        spec: "Tereyağlı & Altın Fırınlama",
+        closedY: -66,
+        explodedY: -195,
+        zIndex: 60,
+        scale: 1.0,
+        side: "left",
+      },
+      {
+        id: "tomato",
+        src: "./assets/layer-2-tomato.png",
+        code: "02 // AROMA KATMANI",
+        name: "Domates & Kırmızı Soğan",
+        spec: "Taze Dilim & Karamelize Halkalar",
+        closedY: -34,
+        explodedY: -116,
+        zIndex: 50,
+        scale: 0.96,
+        side: "right",
+      },
+      {
+        id: "cheese",
+        src: "./assets/layer-3-cheese.png",
+        code: "03 // TERMAL ERİME",
+        name: "Yıllanmış İngiliz Cheddar",
+        spec: "65°C Tam Erime & Akışkan Doku",
+        closedY: -10,
+        explodedY: -38,
+        zIndex: 45,
+        scale: 0.98,
+        side: "left",
+      },
+      {
+        id: "patty",
+        src: "./assets/layer-4-patty.png",
+        code: "04 // ANA ÇEKİRDEK",
+        name: "180g Dry-Aged Dana Köfte",
+        spec: "235°C Döküm Plakada Maillard Mühür",
+        closedY: 14,
+        explodedY: 40,
+        zIndex: 40,
+        scale: 1.0,
+        side: "right",
+      },
+      {
+        id: "lettuce",
+        src: "./assets/layer-5-lettuce.png",
+        code: "05 // TAZELİK & SOS",
+        name: "Kıvırcık Marul & Cıss Sos",
+        spec: "Tütsülü Özel Protokol Emülsiyonu",
+        closedY: 42,
+        explodedY: 118,
+        zIndex: 30,
+        scale: 1.02,
+        side: "left",
+      },
+      {
+        id: "bottom-bun",
+        src: "./assets/layer-6-bottom-bun.png",
+        code: "06 // ALT TABAN",
+        name: "Karamelize Alt Brioche",
+        spec: "Izgarada Tereyağıyla Mühürlenmiş",
+        closedY: 68,
+        explodedY: 194,
+        zIndex: 20,
+        scale: 0.98,
+        side: "right",
+      },
+    ];
+
+    function SplineScene({ scene, className }) {
+      const containerRef = useRef(null);
+      const layerRefs = useRef([]);
+      const calloutRefs = useRef([]);
+      const kanziRef = useRef(null);
+      const glowRef = useRef(null);
+      const shadowRef = useRef(null);
+
+      const [loadedCount, setLoadedCount] = useState(0);
+      const [uiProgress, setUiProgress] = useState(0);
+      const targetProgressRef = useRef(0);
+      const currentProgressRef = useRef(0);
+
+      useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        let targetX = 0;
+        let targetY = 0;
+        let curX = 0;
+        let curY = 0;
+        let reqId;
+        const startTime = performance.now();
+
+        // Wheel / Scroll on the Burger container lifts the bun & separates layers!
+        const handleWheel = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const delta = e.deltaY * 0.0018;
+          const next = Math.max(0, Math.min(1, targetProgressRef.current + delta));
+          targetProgressRef.current = next;
+        };
+
+        const handleMouseMove = (e) => {
+          const rect = container.getBoundingClientRect();
+          const normX = ((e.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1;
+          const normY = -(((e.clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1);
+          targetX = Math.max(-1, Math.min(1, normX));
+          targetY = Math.max(-1, Math.min(1, normY));
+        };
+
+        const handleMouseLeave = () => {
+          targetX = 0;
+          targetY = 0;
+        };
+
+        container.addEventListener("wheel", handleWheel, { passive: false });
+        container.addEventListener("mousemove", handleMouseMove);
+        container.addEventListener("mouseleave", handleMouseLeave);
+
+        let lastReportedProgress = -1;
+
+        const animate = (now) => {
+          reqId = requestAnimationFrame(animate);
+          const elapsed = (now - startTime) * 0.001;
+
+          // Smooth interpolation for scroll explosion progress & mouse tilt
+          currentProgressRef.current += (targetProgressRef.current - currentProgressRef.current) * 0.1;
+          const p = currentProgressRef.current;
+
+          if (Math.abs(p - lastReportedProgress) > 0.01) {
+            lastReportedProgress = p;
+            setUiProgress(p);
+          }
+
+          curX += (targetX - curX) * 0.09;
+          curY += (targetY - curY) * 0.09;
+
+          const floatOffset = Math.sin(elapsed * 2.2) * 4;
+
+          BURGER_LAYERS.forEach((layer, idx) => {
+            const el = layerRefs.current[idx];
+            if (!el) return;
+
+            // Interpolate vertical position between closed burger and exploded layers
+            const y = layer.closedY + (layer.explodedY - layer.closedY) * p;
+            // Subtle individual float wave when exploded
+            const waveY = Math.sin(elapsed * 2.4 - idx * 0.55) * (2.5 + p * 4.5);
+            // 3D parallax per layer
+            const layerDepthFactor = (2.5 - idx) * (4 + p * 8);
+            const tx = curX * (10 + Math.abs(2.5 - idx) * 4);
+            const ty = y + waveY + floatOffset * (1 - p * 0.4) - curY * 8;
+
+            const rotX = -curY * (10 + p * 6) + p * (idx === 0 ? -6 : idx === 5 ? 4 : 0);
+            const rotY = curX * (18 + p * 8);
+            const rotZ = -curX * 3 + p * (idx % 2 === 0 ? -1.5 : 1.5);
+            const s = layer.scale * (1 + p * 0.03);
+
+            el.style.transform = `perspective(1000px) translate3d(${tx}px, ${ty}px, ${layerDepthFactor}px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg) scale(${s})`;
+
+            const calloutEl = calloutRefs.current[idx];
+            if (calloutEl) {
+              const calloutOpacity = Math.max(0, Math.min(1, (p - 0.22) / 0.45));
+              calloutEl.style.opacity = String(calloutOpacity);
+              calloutEl.style.transform = `translate3d(0px, ${ty}px, 0px) scale(${0.92 + calloutOpacity * 0.08})`;
+            }
+          });
+
+          // "Cıss Kanzi!" emerges from between the burger layers and pops out to the side of the burger
+          if (kanziRef.current) {
+            const kp = Math.max(0, Math.min(1, (p - 0.04) / 0.75));
+            // Ease-out back curve for a snappy pop-out from between the layers
+            const easeOut = 1 - Math.pow(1 - kp, 3);
+            const popScale = kp === 0 ? 0.15 : 0.2 + easeOut * 0.88 + Math.sin(kp * Math.PI) * 0.12;
+            const slideX = easeOut * 148 + curX * 16;
+            const slideY = -4 - easeOut * 14 + Math.sin(elapsed * 3.2) * 3 - curY * 8;
+            const rotZ = (1 - easeOut) * -18 + 5;
+
+            kanziRef.current.style.opacity = String(Math.min(1, kp * 1.6));
+            kanziRef.current.style.transform = `perspective(900px) translate3d(${slideX}px, ${slideY}px, 65px) rotateY(${curX * 15}deg) rotateX(${-curY * 10}deg) rotateZ(${rotZ}deg) scale(${popScale})`;
+          }
+
+          if (glowRef.current) {
+            glowRef.current.style.opacity = String(p * 0.6);
+            glowRef.current.style.transform = `scale(${0.85 + p * 0.45})`;
+          }
+
+          if (shadowRef.current) {
+            shadowRef.current.style.transform = `translate3d(${curX * 12}px, ${145 + p * 95}px, 0px) scale(${1 - p * 0.25}, 0.28)`;
+            shadowRef.current.style.opacity = String(0.75 - p * 0.3);
+          }
+        };
+
+        reqId = requestAnimationFrame(animate);
+
+        return () => {
+          cancelAnimationFrame(reqId);
+          container.removeEventListener("wheel", handleWheel);
+          container.removeEventListener("mousemove", handleMouseMove);
+          container.removeEventListener("mouseleave", handleMouseLeave);
+        };
+      }, []);
+
+      const isReady = loadedCount >= BURGER_LAYERS.length;
+      const percent = Math.round(uiProgress * 100);
+
+      return (
+        <div
+          ref={containerRef}
+          className={cn(
+            "relative w-full h-full min-h-[500px] lg:min-h-[620px] flex items-center justify-center overflow-hidden select-none bg-transparent cursor-ns-resize",
+            className
+          )}
+          title="Katmanları açmak için burgerin üzerinde scroll yapın"
+        >
+          {!isReady && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-50 bg-black">
+              <span className="loader"></span>
+              <span className="text-xs font-mono text-zinc-400">BURGER KATMANLARI YÜKLENİYOR...</span>
+            </div>
+          )}
+
+          {/* Ambient Thermal Core Glow removed */}
+
+          {/* Top Instruction Pill */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 backdrop-blur-md border border-orange-500/30 text-[11px] font-mono text-zinc-200 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+            <span>BURGER ÜZERİNDE SCROLL YAPIN // KATMAN AÇILIMI: %{percent}</span>
+            <button
+              type="button"
+              onClick={() => {
+                targetProgressRef.current = targetProgressRef.current > 0.5 ? 0 : 1;
+              }}
+              className="ml-1 px-2 py-0.5 rounded bg-orange-500 text-black font-bold hover:bg-orange-400 transition-colors cursor-pointer"
+            >
+              {percent > 50 ? "Birleştir" : "Katmanları Aç"}
+            </button>
+          </div>
+
+          {/* Right-side Vertical Scroll Progress Indicator */}
+          <div className="hidden sm:flex flex-col items-center gap-2 absolute right-4 top-1/2 -translate-y-1/2 z-40">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest [writing-mode:vertical-rl]">
+              SCROLL
+            </span>
+            <div className="w-1.5 h-32 rounded-full bg-zinc-800/90 overflow-hidden p-0.5">
+              <div
+                className="w-full bg-gradient-to-b from-orange-400 to-amber-500 rounded-full transition-all duration-75"
+                style={{ height: `${Math.max(10, percent)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 3D Burger Stack & Exploded HUD Callouts Stage */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Floor Contact Shadow */}
+            <div
+              ref={shadowRef}
+              className="pointer-events-none absolute w-64 h-64 rounded-full bg-black/95 blur-2xl"
+            />
+
+            {/* Floating Ingredient Callout Badges (Left & Right) */}
+            {BURGER_LAYERS.map((layer, idx) => (
+              <div
+                key={`callout-${layer.id}`}
+                ref={(el) => (calloutRefs.current[idx] = el)}
+                style={{ opacity: 0 }}
+                className={cn(
+                  "pointer-events-none hidden md:flex items-center gap-2 absolute z-30",
+                  layer.side === "left"
+                    ? "left-3 lg:left-5 flex-row"
+                    : "right-8 lg:right-10 flex-row-reverse text-right"
+                )}
+              >
+                <div className="px-2.5 py-1.5 rounded-lg bg-zinc-950/90 backdrop-blur-md border border-zinc-800/90 shadow-xl">
+                  <div className="text-[9px] font-mono text-orange-400 tracking-wider">
+                    {layer.code}
+                  </div>
+                  <div className="text-xs font-bold text-white leading-tight">
+                    {layer.name}
+                  </div>
+                  <div className="text-[10px] text-zinc-400 leading-tight mt-0.5">
+                    {layer.spec}
+                  </div>
+                </div>
+                <div className="w-6 lg:w-10 h-[1px] bg-gradient-to-r from-orange-500/80 to-orange-400/20" />
+                <div className="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_8px_#f97316]" />
+              </div>
+            ))}
+
+            {/* "Cıss Kanzi!" Badge emerging from between the Cheddar & Patty layers out to the side */}
+            <div
+              ref={kanziRef}
+              style={{ opacity: 0, zIndex: 55 }}
+              className="pointer-events-none absolute flex items-center will-change-transform"
+            >
+              {/* Sizzle trail line coming out from the center gap of the burger */}
+              <div className="w-8 sm:w-12 h-[2px] bg-gradient-to-r from-transparent via-orange-400 to-amber-300 rounded-full mr-2 shadow-[0_0_10px_#f97316]" />
+              <div className="relative px-4 py-2 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-black font-black text-lg sm:text-2xl tracking-tight shadow-[0_10px_30px_rgba(249,115,22,0.55)] border-2 border-amber-200 whitespace-nowrap flex items-center gap-1.5">
+                <IconFlame className="w-5 h-5 sm:w-6 sm:h-6 text-black fill-black animate-bounce" />
+                <span>Cıss Kanzi!</span>
+              </div>
+            </div>
+
+            {/* 6 Photorealistic Burger Layers */}
+            {BURGER_LAYERS.map((layer, idx) => (
+              <div
+                key={layer.id}
+                ref={(el) => (layerRefs.current[idx] = el)}
+                style={{
+                  zIndex: layer.zIndex,
+                  filter: "drop-shadow(0 16px 20px rgba(0,0,0,0.85))",
+                }}
+                className="pointer-events-none absolute w-[260px] sm:w-[300px] md:w-[320px] aspect-[2/1] flex items-center justify-center will-change-transform"
+              >
+                <img
+                  src={layer.src}
+                  alt={layer.name}
+                  onLoad={() => setLoadedCount((c) => c + 1)}
+                  className="w-full h-full object-contain select-none pointer-events-none"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // components/ui/demo.tsx -> SplineSceneBasic
+    function SplineSceneBasic() {
+      return (
+        <Card className="w-full min-h-[560px] lg:h-[620px] bg-black border-zinc-800/80 relative overflow-hidden rounded-2xl shadow-2xl">
+          <Spotlight
+            className="z-20"
+            size={380}
+            fill="white"
+          />
+
+          <div className="flex flex-col lg:flex-row h-full relative z-10">
+            {/* Left content */}
+            <div className="flex-1 p-8 md:p-12 lg:p-14 relative z-10 flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-mono uppercase tracking-widest w-fit mb-6">
+                <IconCpu className="w-3.5 h-3.5 animate-pulse" />
+                <span>Mutfak Mühendisliği v4.2 // 850°C Sear</span>
+              </div>
+
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 via-neutral-100 to-neutral-500">
+                Cıss Burger
+              </h1>
+
+              <p className="mt-3 text-lg md:text-xl font-medium text-orange-400/90 flex items-center gap-2">
+                <IconFlame className="w-5 h-5 text-orange-500 shrink-0" />
+                <span>Teknoloji Konseptli Yeni Nesil Gurme Burgerci</span>
+              </p>
+
+              <p className="mt-4 text-neutral-300 max-w-xl leading-relaxed text-sm md:text-base">
+                Geleneksel odun ateşi lezzetini milimetrik ısı sensörleri, kızılötesi mühürleme
+                teknolojisi ve moleküler sos reçeteleriyle birleştirdik. %100 dry-aged dana
+                kaburga burgerlerimizle gerçek lezzetin en ileri versiyonunu keşfedin.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <a
+                  href="#burgerler"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold text-sm hover:from-orange-400 hover:to-amber-400 transition-all shadow-lg shadow-orange-500/20"
+                >
+                  <span>Burger Koleksiyonunu İncele</span>
+                  <IconChevronRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="#teknoloji"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-zinc-900/90 border border-zinc-700/80 text-neutral-200 font-medium text-sm hover:bg-zinc-800 hover:border-zinc-600 transition-all"
+                >
+                  <IconSparkles className="w-4 h-4 text-orange-400" />
+                  <span>Nasıl Pişiriyoruz?</span>
+                </a>
+              </div>
+
+              <div className="mt-10 pt-6 border-t border-zinc-800/80 grid grid-cols-3 gap-4 max-w-lg">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+                    <IconThermometer className="w-3.5 h-3.5 text-orange-500" />
+                    <span>IZGARA ISISI</span>
+                  </div>
+                  <p className="text-xl font-bold text-white font-mono mt-0.5">235°C</p>
+                </div>
+                <div>
+                  <div className="text-xs font-mono text-zinc-400">DRY-AGED SÜRESİ</div>
+                  <p className="text-xl font-bold text-white font-mono mt-0.5">28 GÜN</p>
+                </div>
+                <div>
+                  <div className="text-xs font-mono text-zinc-400">ET KALİTESİ</div>
+                  <p className="text-xl font-bold text-orange-400 font-mono mt-0.5">%100 DANA</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right content - 3D Spline Scene */}
+            <div className="flex-1 relative min-h-[380px] lg:h-[620px]">
+              <SplineScene
+                scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                className="w-full h-full"
+              />
+              <div className="pointer-events-none absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-md border border-zinc-800 text-[11px] font-mono text-zinc-400">
+                BURGER ÜZERİNDE SCROLL YAPIN // KATMANLARI HAVAYA KALDIRIN
+              </div>
+            </div>
+          </div>
+        </Card>
+      );
+    }
+
+    const BURGER_MENU = [
+      {
+        id: "overclocked-smash",
+        code: "CISS-01 // OVERCLOCK",
+        name: "Overclocked Double Smash",
+        category: "smash",
+        categoryLabel: "Çift Smash Serisi",
+        tagline: "Maksimum Maillard Kabuğu & Çift Kat Yıllanmış Cheddar",
+        description:
+          "235°C döküm plakada yüksek basınçla mühürlenen 2x90g dry-aged dana kaburga köftesi. Karamelize soğan matrisi, ev yapımı fermente turşu ve tütsülü Cıss protokol sosu ile tereyağlı brioche ekmeğinde.",
+        image:
+          "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "235°C Plaka", weight: "180g (2x90g)", searTime: "110 Saniye" },
+        ingredients: [
+          "2x90g Dry-Aged Dana Smash",
+          "Çift Kat Yıllanmış İngiliz Cheddar",
+          "Karamelize Soğan Matrisi",
+          "Cıss v4 İmza Protokol Sosu",
+          "Ev Yapımı Tereyağlı Brioche",
+        ],
+      },
+      {
+        id: "cyber-truffle",
+        code: "CISS-02 // NEURAL TRUFFLE",
+        name: "Cyber Truffle Burger",
+        category: "steakhouse",
+        categoryLabel: "Gurme Steak Serisi",
+        tagline: "Siyah Trüf Emülsiyonu & Füme Scamorza Peyniri",
+        description:
+          "Kalın çekim 180g dinlendirilmiş dana antrikot & kaburga harmanı. Odun ateşinde sotelenmiş yabani mantarlar, siyah İtalyan trüf aioli, erimiş füme scamorza peyniri ve çıtır arpacık soğan halkaları.",
+        image:
+          "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "62°C İç Isı", weight: "180g Tek Kat", searTime: "4.5 Dakika" },
+        ingredients: [
+          "180g Antrikot & Kaburga Köfte",
+          "Siyah Trüf Mantarlı Aioli",
+          "Füme Scamorza & İsviçre Peyniri",
+          "Sote Yabani Orman Mantarları",
+          "Çıtır Arpacık Soğan Halkaları",
+        ],
+      },
+      {
+        id: "quantum-smokehouse",
+        code: "CISS-03 // QUANTUM SMOKE",
+        name: "Quantum Smokehouse Brisket",
+        category: "steakhouse",
+        categoryLabel: "12 Saat Tütsü Serisi",
+        tagline: "Meşe Odununda 12 Saat Tütsülenmiş Dana Brisket & Burger",
+        description:
+          "Klasik 160g Cıss burger köftesinin üzerine 12 saat düşük ısıda meşe dumanıyla pişirilmiş lif lif dana brisket dilimleri, çıtır dana bacon, karamelize espresso-BBQ glazür ve erimiş cheddar.",
+        image:
+          "https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "850°C Infrared", weight: "240g Toplam Et", searTime: "12 Saat Füme" },
+        ingredients: [
+          "160g Burger Köftesi + 80g Dana Brisket",
+          "Odun Ateşinde Çıtır Dana Bacon",
+          "Espresso & Meşe Tütsülü BBQ Sos",
+          "Yıllanmış Cheddar Peyniri",
+          "Susamlı Siyah Karbon & Brioche Ekmek",
+        ],
+      },
+      {
+        id: "thermal-jalapeno",
+        code: "CISS-04 // THERMAL CORE",
+        name: "Thermal Core Jalapeño",
+        category: "spicy",
+        categoryLabel: "Yüksek Isı / Acı Serisi",
+        tagline: "Közlenmiş Jalapeño, Chipotle Emülsiyonu & Pepper Jack",
+        description:
+          "Acı severler için termal dengesi milimetrik ayarlanmış lezzet. Közlenmiş taze jalapeño biberleri, erimiş pepper jack peyniri, serinletici avokado kreması ve isli chipotle biber sosu.",
+        image:
+          "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "240°C Mühür", weight: "180g Kaburga", searTime: "3.5 Dakika" },
+        ingredients: [
+          "180g Baharat Zırhlı Dana Köfte",
+          "Erimiş Pepper Jack Peyniri",
+          "Ateşte Közlenmiş Jalapeño",
+          "İsli Chipotle & Avokado Kreması",
+          "Çıtır Mısır Gevrekli Soğan",
+        ],
+      },
+      {
+        id: "silicon-triple",
+        code: "CISS-05 // SILICON STACK",
+        name: "Triple Core Brioche",
+        category: "smash",
+        categoryLabel: "Üçlü Smash Serisi",
+        tagline: "3 Kat Smash Köfte, 3 Kat Cheddar & Sarımsaklı Tereyağı",
+        description:
+          "Yüksek protein ve maksimum çıtırlık arayanlar için 3x75g incecik smash köfte. Her katmanda eriyen cheddar peyniri, kavrulmuş sarımsaklı tereyağı, salatalık turşusu ve hardal tohumlu özel sos.",
+        image:
+          "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "245°C Plaka", weight: "225g (3x75g)", searTime: "95 Saniye" },
+        ingredients: [
+          "3x75g Ultra-Crispy Smash Köfte",
+          "3 Kat Erimiş Cheddar",
+          "Kavrulmuş Sarımsaklı Tereyağı",
+          "Tatlı-Ekşi Salatalık Turşusu",
+          "Hardal Tohumlu Cıss Sos",
+        ],
+      },
+      {
+        id: "bio-plant-neural",
+        code: "CISS-06 // BIO-SYNTH",
+        name: "Bio-Plant Neural Burger",
+        category: "vegan",
+        categoryLabel: "%100 Bitkisel / Vegan",
+        tagline: "Yeni Nesil Bitkisel Protein & Tütsülü Vegan Cheddar",
+        description:
+          "Bezelye proteini, pancar özü ve hindistan cevizi yağı ile gerçek burger dokusunda geliştirilen %100 bitkisel köfte. Tütsülü vegan cheddar, avokado dilimleri, karamelize soğan ve vegan brioche.",
+        image:
+          "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80",
+        specs: { temp: "210°C Izgara", weight: "160g Bitkisel", searTime: "3 Dakika" },
+        ingredients: [
+          "160g Yeni Nesil Bitkisel Köfte",
+          "Tütsülenmiş Vegan Cheddar",
+          "Taze Avokado & Karamelize Soğan",
+          "Bitkisel Trüf & Fesleğen Sosu",
+          "%100 Vegan Burger Ekmeği",
+        ],
+      },
+    ];
+
+    const TECH_PILLARS = [
+      {
+        icon: IconFlame,
+        badge: "MODÜL 01 // 850°C",
+        title: "Kızılötesi & Döküm Mühürleme",
+        description:
+          "Burgerlerimiz sıradan ızgaralarda değil; ısıyı milimetrik olarak sabit tutan yüksek iletkenlikli çelik-döküm plakalarda mühürlenir. Bu sayede dışı çıtır karamelize kabuk bağlarken etin tüm suyu içeride hapsolur.",
+      },
+      {
+        icon: IconCpu,
+        badge: "MODÜL 02 // SENSÖR",
+        title: "Çekirdek Isı Kalibrasyonu",
+        description:
+          "Her köftenin kalınlığına göre pişirme süresi ve iç sıcaklığı dijital termal problarla takip edilir. Her gelişinizde aynı kusursuz sululuk ve pişme derecesini standart olarak deneyimlersiniz.",
+      },
+      {
+        icon: IconSparkles,
+        badge: "MODÜL 03 // EMÜLSİYON",
+        title: "Moleküler Sos Laboratuvarı",
+        description:
+          "Cıss Burger'de hazır sos kullanılmaz. Siyah trüf aioli, fermente biber sosları ve meşe tütsülü barbekü glazürlerimiz mutfak laboratuvarımızda günlük taze malzemelerle emülsifiye edilir.",
+      },
+      {
+        icon: IconShieldCheck,
+        badge: "MODÜL 04 // %100 DOĞAL",
+        title: "28 Gün Dry-Aged Tek Çiftlik Eti",
+        description:
+          "Teknolojimiz pişirme tekniğimizde; doğallığımız ise kaynağımızda. Hiçbir katkı maddesi, koruyucu veya donuk ürün kullanmadan, 28 gün dinlendirilmiş %100 dana kaburga ve antrikot eti çekiyoruz.",
+      },
+    ];
+
+    const SIDE_MODULES = [
+      {
+        name: "Circuit Fries // Trüf & Parmesan",
+        desc: "Çift aşamalı ultrasonik nişasta arındırma yöntemiyle dışı cam gibi çıtır, içi pamuk gibi patates kızartması; trüf yağı ve 24 aylık rendelenmiş parmesan ile.",
+        tag: "ÇİFT KIZARTMA // 190°C",
+      },
+      {
+        name: "Cıss Cajun Baharatlı Patates",
+        desc: "Ev yapımı 9 baharatlı tütsülü Cajun harmanı ve yanında közlenmiş sarımsaklı Cıss dip sos ile servis edilen el kesimi çıtır patates.",
+        tag: "ÖZEL BAHARAT HARMANI",
+      },
+      {
+        name: "Crispy Onion Rings // Soğan Halkası",
+        desc: "Maden suyu ve mısır unlu özel kaplamasıyla yağ çekmeden altın sarısı kıvamda kızartılan tam halka tatlı beyaz soğanlar.",
+        tag: "TAM HALKA SOĞAN",
+      },
+      {
+        name: "Nitro Cold Brew & Ev Yapımı Limonata",
+        desc: "Taze sıkılmış naneli-zencefilli fermente limonata ve burger lezzetini dengeleyen buz gibi ev yapımı soğuk içecek koleksiyonu.",
+        tag: "DOĞAL & TAZE ÜRETİM",
+      },
+    ];
+
+    function App() {
+      const [activeCategory, setActiveCategory] = useState("all");
+
+      const filteredBurgers =
+        activeCategory === "all"
+          ? BURGER_MENU
+          : BURGER_MENU.filter((b) => b.category === activeCategory);
+
+      return (
+        <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+          {/* Header */}
+          <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-xl">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+              <a href="#" className="flex items-center gap-3 group">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
+                  <IconFlame className="w-6 h-6 text-black" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-black tracking-tight text-white">
+                      CISS BURGER
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                      TECH-GRILL
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 font-mono">
+                    Yüksek Frekanslı Gurme Burgerci
+                  </p>
+                </div>
+              </a>
+
+              <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300">
+                <a href="#konsept" className="hover:text-orange-400 transition-colors">Konseptimiz</a>
+                <a href="#burgerler" className="hover:text-orange-400 transition-colors">Burger Koleksiyonu</a>
+                <a href="#teknoloji" className="hover:text-orange-400 transition-colors">Mutfak Teknolojisi</a>
+                <a href="#yan-lezzetler" className="hover:text-orange-400 transition-colors">Yan Lezzetler</a>
+                <a href="#subeler" className="hover:text-orange-400 transition-colors">Lokasyon & Saatler</a>
+              </nav>
+
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>IZGARA AKTİF // 12:00 - 23:30</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1">
+            {/* Hero */}
+            <section id="konsept" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
+              <SplineSceneBasic />
+            </section>
+
+            {/* Telemetry Strip */}
+            <section className="border-y border-zinc-800/80 bg-zinc-900/40 py-8">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
+                    <IconThermometer className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono text-zinc-400">MAILLARD REAKSİYONU</div>
+                    <div className="text-base font-bold text-white">235°C Hassas Mühür</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
+                    <IconAward className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono text-zinc-400">SIFIR DONUK ÜRÜN</div>
+                    <div className="text-base font-bold text-white">Günlük Taze Çekim Et</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
+                    <IconLayers className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono text-zinc-400">ARTİZAN FIRIN</div>
+                    <div className="text-base font-bold text-white">Günlük Tereyağlı Brioche</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
+                    <IconZap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono text-zinc-400">ÖZEL REÇETE</div>
+                    <div className="text-base font-bold text-white">Ev Yapımı İmza Soslar</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Burger Menu Showcase */}
+            <section id="burgerler" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+              <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-mono uppercase tracking-wider mb-3">
+                    <IconUtensils className="w-3.5 h-3.5" />
+                    <span>CISS BURGER MENÜ KATALOĞU</span>
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">
+                    Teknoloji Konseptli Gurme Burgerler
+                  </h2>
+                  <p className="mt-3 text-zinc-400 max-w-2xl">
+                    Her bir burgerimiz gerçek bir burger ustalığıyla hazırlanır, ancak malzeme
+                    oranları ve pişirme süreleri bir mühendislik projesi titizliğiyle uygulanır.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "all", label: "Tümü (6)" },
+                    { key: "smash", label: "Smash Serisi" },
+                    { key: "steakhouse", label: "Steak & Füme" },
+                    { key: "spicy", label: "Acı / Termal" },
+                    { key: "vegan", label: "Bitkisel" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveCategory(tab.key)}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-wider transition-all border ${
+                        activeCategory === tab.key
+                          ? "bg-orange-500 text-black font-bold border-orange-400 shadow-lg shadow-orange-500/20"
+                          : "bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:border-zinc-700"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredBurgers.map((burger) => (
+                  <Card
+                    key={burger.id}
+                    className="bg-zinc-900/60 border-zinc-800/90 hover:border-orange-500/50 transition-all duration-300 flex flex-col overflow-hidden group relative"
+                  >
+                    <Spotlight size={240} />
+                    <div className="relative h-60 w-full overflow-hidden bg-zinc-950">
+                      <img
+                        src={burger.image}
+                        alt={burger.name}
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md border border-zinc-700/80 text-[11px] font-mono text-orange-400">
+                        {burger.code}
+                      </div>
+                      <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-orange-500/90 text-black font-bold text-[11px] font-mono">
+                        {burger.categoryLabel}
+                      </div>
+                    </div>
+
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-xl font-bold text-white group-hover:text-orange-400 transition-colors">
+                        {burger.name}
+                      </CardTitle>
+                      <CardDescription className="text-orange-300/90 font-medium text-xs">
+                        {burger.tagline}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="flex-1 flex flex-col justify-between space-y-5">
+                      <p className="text-sm text-zinc-300 leading-relaxed">
+                        {burger.description}
+                      </p>
+
+                      <div>
+                        <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-zinc-950/90 border border-zinc-800/80 mb-4">
+                          <div>
+                            <span className="block text-[10px] font-mono text-zinc-500">GRAMAJ</span>
+                            <span className="text-xs font-mono font-semibold text-zinc-200">{burger.specs.weight}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-mono text-zinc-500">TERMAL ISI</span>
+                            <span className="text-xs font-mono font-semibold text-orange-400">{burger.specs.temp}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-mono text-zinc-500">MÜHÜR SÜRESİ</span>
+                            <span className="text-xs font-mono font-semibold text-zinc-200">{burger.specs.searTime}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+                            İçerik Katmanları:
+                          </span>
+                          <ul className="space-y-1">
+                            {burger.ingredients.map((item, idx) => (
+                              <li key={idx} className="text-xs text-zinc-300 flex items-center gap-2">
+                                <IconCheckCircle2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+
+                    <CardFooter className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono text-zinc-400">
+                      <span className="flex items-center gap-1.5">
+                        <IconFlame className="w-3.5 h-3.5 text-orange-500" />
+                        Restoranda Taze Hazırlanır
+                      </span>
+                      <span className="text-orange-400 font-semibold">CISS İMZA SERİSİ</span>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </section>
+
+            {/* Tech Modules Section */}
+            <section id="teknoloji" className="py-20 border-y border-zinc-800/80 bg-zinc-900/30 relative overflow-hidden">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center max-w-3xl mx-auto mb-16">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-mono uppercase tracking-wider mb-3">
+                    <IconActivity className="w-3.5 h-3.5" />
+                    <span>CISS LAB // LEZZET TEKNOLOJİSİ</span>
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">
+                    Gerçek Burger, İleri Mutfak Teknolojisi
+                  </h2>
+                  <p className="mt-4 text-zinc-400 text-base">
+                    Cıss Burger özünde geleneksel, dumanı üstünde bir mahalle gurme burgercisidir.
+                    Farkımız; eti işleme, dinlendirme ve pişirme aşamalarında kullandığımız
+                    hassas gastronomi teknolojisidir.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {TECH_PILLARS.map((pillar, index) => {
+                    const IconComponent = pillar.icon;
+                    return (
+                      <Card
+                        key={index}
+                        className="bg-zinc-950/90 border-zinc-800/90 p-6 relative overflow-hidden group hover:border-orange-500/40 transition-colors"
+                      >
+                        <Spotlight size={260} />
+                        <div className="flex items-start gap-5 relative z-10">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/5 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
+                            <IconComponent className="w-7 h-7" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-mono text-orange-400 uppercase tracking-widest">
+                              {pillar.badge}
+                            </span>
+                            <h3 className="text-xl font-bold text-white mt-1">{pillar.title}</h3>
+                            <p className="mt-2 text-sm text-zinc-300 leading-relaxed">{pillar.description}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {/* Side Modules */}
+            <section id="yan-lezzetler" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-mono uppercase tracking-wider">
+                    <IconGauge className="w-3.5 h-3.5" />
+                    <span>YAN DONANIMLAR & EŞLİKÇİLER</span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">
+                    Burger Deneyimini Tamamlayan Çıtır Modüller
+                  </h2>
+                  <p className="text-zinc-400 leading-relaxed text-sm md:text-base">
+                    İyi bir burgerin en güçlü tamamlayıcısı kusursuz kızarmış patates ve
+                    ev yapımı soslardır. Patateslerimizi çift aşamalı sıcaklık kontrolüyle
+                    kızartıyor, kendi baharat harmanlarımızla sıcak servis ediyoruz.
+                  </p>
+                  <div className="rounded-2xl overflow-hidden border border-zinc-800 relative h-64">
+                    <img
+                      src="https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=900&q=80"
+                      alt="Cıss Burger Çıtır Patates ve Soslar"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-5">
+                      <span className="text-xs font-mono text-orange-300">
+                        // ÇİFT KIZARTMA PROTOKOLÜ İLE MAKSİMUM ÇITIRLIK
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {SIDE_MODULES.map((side, i) => (
+                    <Card
+                      key={i}
+                      className="bg-zinc-900/50 border-zinc-800/90 p-6 flex flex-col justify-between hover:border-zinc-700 transition-all"
+                    >
+                      <div>
+                        <span className="inline-block text-[10px] font-mono px-2.5 py-1 rounded bg-zinc-800 text-orange-400 mb-3">
+                          {side.tag}
+                        </span>
+                        <h3 className="text-lg font-bold text-white">{side.name}</h3>
+                        <p className="mt-2 text-sm text-zinc-300 leading-relaxed">{side.desc}</p>
+                      </div>
+                      <div className="mt-5 pt-3 border-t border-zinc-800/70 flex items-center justify-between text-xs font-mono text-zinc-500">
+                        <span>CISS MUTFAK ÜRETİMİ</span>
+                        <span className="text-orange-400">● TAZE SERVİS</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Locations & Hours */}
+            <section id="subeler" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+              <Card className="bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border-zinc-800 p-8 md:p-12 relative overflow-hidden">
+                <Spotlight size={320} />
+                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                  <div className="lg:col-span-1 space-y-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-mono uppercase">
+                      <IconCompass className="w-3.5 h-3.5" />
+                      <span>RESTORAN DENEYİMİ</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-white">
+                      Cıss Burger İstasyona Bekliyoruz
+                    </h2>
+                    <p className="text-sm text-zinc-300 leading-relaxed">
+                      Burgerlerimizin çıtırlığını ve 235°C mühür aromasını ilk saniyedeki
+                      sıcaklığıyla yaşamanız için sizi restoranımıza davet ediyoruz.
+                    </p>
+                  </div>
+
+                  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+                      <IconMapPin className="w-6 h-6 text-orange-400 mb-3" />
+                      <h3 className="text-sm font-mono uppercase text-zinc-400">MERKEZ İSTASYON</h3>
+                      <p className="text-base font-bold text-white mt-1">Kadıköy Moda & Beşiktaş Akaretler</p>
+                      <p className="text-xs text-zinc-400 mt-1">Açık Mutfak & Termal Izgara Barı</p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+                      <IconClock className="w-6 h-6 text-orange-400 mb-3" />
+                      <h3 className="text-sm font-mono uppercase text-zinc-400">ÇALIŞMA SAATLERİ</h3>
+                      <p className="text-base font-bold text-white mt-1">Her Gün 12:00 – 23:30</p>
+                      <p className="text-xs text-zinc-400 mt-1">Cuma & Cumartesi 01:00'e Kadar</p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+                      <IconPhone className="w-6 h-6 text-orange-400 mb-3" />
+                      <h3 className="text-sm font-mono uppercase text-zinc-400">İLETİŞİM & BİLGİ</h3>
+                      <p className="text-base font-bold text-white mt-1">0 (216) 555 24 77</p>
+                      <p className="text-xs text-zinc-400 mt-1">merhaba@cissburger.com</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </section>
+          </main>
+
+          {/* Footer */}
+          <footer className="border-t border-zinc-800/80 bg-black py-10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 font-mono">
+              <div className="flex items-center gap-2">
+                <IconFlame className="w-4 h-4 text-orange-500" />
+                <span className="text-zinc-300 font-bold">CISS BURGER</span>
+                <span>// TEKNOLOJİ KONSEPTLİ GURME BURGER TANITIM SİTESİ</span>
+              </div>
+              <div>© {new Date().getFullYear()} Cıss Burger. Tüm hakları saklıdır.</div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
